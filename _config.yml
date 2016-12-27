@@ -69,5 +69,5 @@ theme: landscape-plus
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
   type: git
-  repo: git@github.com:LiangKim/myblog.git 
+  repo: https://github.com/LiangKim/myblog.git 
   branch: gh-pages 
