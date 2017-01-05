@@ -13,6 +13,7 @@ category:
 + 无任何异常日志，CLOSE_WATI数正常。
 + 静态资源也无法访问
 + 通过命令查看线程数
+
 ```
 ps -ef|grep tomcat --获取进程ID
 ps -T -p <pid>|wc -l -- 获取tomcat下线程数
@@ -22,17 +23,20 @@ ps -T -p <pid>|wc -l -- 获取tomcat下线程数
 
 #### 获取DUMP日志
 因为生产环境没有装JDK，只有JRE环境，费了好一番功夫才发现有个神奇的命令.
+
 ```
 kill -3 <pid>
 ```
 
 这个命令并不会导致进程被杀，并且会将相应的线程堆栈信息和大致的内存占用情况输出到tomcat目录下的catalina.out文件中。
 因为这个文件往往较大，所以DUMP前可以先清空这个日志文件。
+
 ```
 echo "">catalina.out -- 这个命令也可以用于运行时释放日志
 ```
 
 拿到DUMP后，问题开始明朗起来：
+
 ```
 "http-bio-443-exec-1151" daemon prio=10 tid=0x00007fd1c96c9000 nid=0x26cb in Object.wait() [0x00007fd0f914e000]
    java.lang.Thread.State: WAITING (on object monitor)
@@ -57,6 +61,7 @@ echo "">catalina.out -- 这个命令也可以用于运行时释放日志
 
 有近千个线程处于WAITING状态，都是卡在获取数据库连接这一步上。
 反查数据库中的连接数:
+
 ```
 SELECT COUNT(1) FROM GV$SESSION WHERE machine = '主机名'
 ```
@@ -74,6 +79,7 @@ google之后发现dbcp官方JIRA上也report了这个问题，据说是一个BUG
 但我不确定是否真的是这个原因，或许业务代码在某种极为巧合的情形下的确会导致连接无法正常关闭；那么鲁莽的行为只会掩盖这个问题，并且在日后造成更大的麻烦。
 所以最好的解决方式是找到连接泄漏的位置。
 通过采用DBCP配置：
+
 ```
 maxWait=5000
 removeAbandoned=true
