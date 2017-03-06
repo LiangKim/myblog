@@ -113,5 +113,13 @@ logAbandoned=true
 + 本质问题是为什么FTP线程无法结束，需要分析是服务器原因，还是代码原因
 + 暴力解法：设定定时器，超时直接结束FTP线程
 
+#### 后续
 
+将FTP改为被动模式上传，问题解决。
+
+```java
+// 代码是瞎写的，意会即可
+FtpClient client = new FtpClient();
+client.enterPasvmode();
+```
 
