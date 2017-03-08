@@ -1,0 +1,13 @@
+{"name":"hexo","hostname":"liangdeMacBook-Air.local","pid":30503,"level":20,"msg":"Hexo version: \u001b[35m3.2.2\u001b[39m","time":"2017-03-06T12:30:36.733Z","v":0}
+{"name":"hexo","hostname":"liangdeMacBook-Air.local","pid":30503,"level":20,"msg":"Working directory: \u001b[35m~/git/myblog/\u001b[39m","time":"2017-03-06T12:30:36.736Z","v":0}
+{"name":"hexo","hostname":"liangdeMacBook-Air.local","pid":30503,"level":20,"msg":"Config loaded: \u001b[35m~/git/myblog/_config.yml\u001b[39m","time":"2017-03-06T12:30:36.844Z","v":0}
+{"name":"hexo","hostname":"liangdeMacBook-Air.local","pid":30503,"level":20,"msg":"Script loaded: \u001b[35mthemes/landscape/scripts/fancybox.js\u001b[39m","time":"2017-03-06T12:30:36.856Z","v":0}
+{"name":"hexo","hostname":"liangdeMacBook-Air.local","pid":30503,"level":20,"msg":"Plugin loaded: \u001b[35mhexo-generator-archive\u001b[39m","time":"2017-03-06T12:30:36.859Z","v":0}
+{"name":"hexo","hostname":"liangdeMacBook-Air.local","pid":30503,"level":20,"msg":"Plugin loaded: \u001b[35mhexo-generator-category\u001b[39m","time":"2017-03-06T12:30:36.860Z","v":0}
+{"name":"hexo","hostname":"liangdeMacBook-Air.local","pid":30503,"level":20,"msg":"Plugin loaded: \u001b[35mhexo-generator-index\u001b[39m","time":"2017-03-06T12:30:36.862Z","v":0}
+{"name":"hexo","hostname":"liangdeMacBook-Air.local","pid":30503,"level":20,"msg":"Plugin loaded: \u001b[35mhexo-generator-tag\u001b[39m","time":"2017-03-06T12:30:36.863Z","v":0}
+{"name":"hexo","hostname":"liangdeMacBook-Air.local","pid":30503,"level":20,"msg":"Plugin loaded: \u001b[35mhexo-renderer-ejs\u001b[39m","time":"2017-03-06T12:30:36.866Z","v":0}
+{"name":"hexo","hostname":"liangdeMacBook-Air.local","pid":30503,"level":20,"msg":"Plugin loaded: \u001b[35mhexo-renderer-stylus\u001b[39m","time":"2017-03-06T12:30:36.868Z","v":0}
+{"name":"hexo","hostname":"liangdeMacBook-Air.local","pid":30503,"level":20,"msg":"Plugin loaded: \u001b[35mhexo-renderer-marked\u001b[39m","time":"2017-03-06T12:30:36.875Z","v":0}
+{"name":"hexo","hostname":"liangdeMacBook-Air.local","pid":30503,"level":20,"msg":"Plugin loaded: \u001b[35mhexo-server\u001b[39m","time":"2017-03-06T12:30:36.933Z","v":0}
+{"name":"hexo","hostname":"liangdeMacBook-Air.local","pid":30503,"level":20,"msg":"Database saved","time":"2017-03-06T12:30:36.943Z","v":0}

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>TOMCAT假死分析 | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="现象
+tomcat假死，无法响应任何请求。
+CPU、内存等均无告警，假死之后CPU占用率变得很低。
+无任何异常日志，CLOSE_WATI数正常。
+静态资源也无法访问
+通过命令查看线程数
+
+12ps -ef|grep tomcat --获取进程IDps -T -p &amp;lt;pid&amp;gt;|wc -l -- 获取tomcat下线程数
+发现有近1500个线程，这已经到达tomcat线程上限。
+获取DUM">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TOMCAT假死分析">
+<meta property="og:url" content="http://yoursite.com/2017/01/05/TOMCAT假死分析/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="现象
+tomcat假死，无法响应任何请求。
+CPU、内存等均无告警，假死之后CPU占用率变得很低。
+无任何异常日志，CLOSE_WATI数正常。
+静态资源也无法访问
+通过命令查看线程数
+
+12ps -ef|grep tomcat --获取进程IDps -T -p &amp;lt;pid&amp;gt;|wc -l -- 获取tomcat下线程数
+发现有近1500个线程，这已经到达tomcat线程上限。
+获取DUM">
+<meta property="og:updated_time" content="2017-03-08T11:31:29.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="TOMCAT假死分析">
+<meta name="twitter:description" content="现象
+tomcat假死，无法响应任何请求。
+CPU、内存等均无告警，假死之后CPU占用率变得很低。
+无任何异常日志，CLOSE_WATI数正常。
+静态资源也无法访问
+通过命令查看线程数
+
+12ps -ef|grep tomcat --获取进程IDps -T -p &amp;lt;pid&amp;gt;|wc -l -- 获取tomcat下线程数
+发现有近1500个线程，这已经到达tomcat线程上限。
+获取DUM">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-TOMCAT假死分析" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/01/05/TOMCAT假死分析/" class="article-date">
+  <time datetime="2017-01-05T12:29:14.000Z" itemprop="datePublished">2017-01-05</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/CODE/">CODE</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      TOMCAT假死分析
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h4 id="现象"><a href="#现象" class="headerlink" title="现象"></a>现象</h4><ul>
+<li>tomcat假死，无法响应任何请求。</li>
+<li>CPU、内存等均无告警，假死之后CPU占用率变得很低。</li>
+<li>无任何异常日志，CLOSE_WATI数正常。</li>
+<li>静态资源也无法访问</li>
+<li>通过命令查看线程数</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">ps -ef|grep tomcat --获取进程ID</div><div class="line">ps -T -p &lt;pid&gt;|wc -l -- 获取tomcat下线程数</div></pre></td></tr></table></figure>
+<p>发现有近1500个线程，这已经到达tomcat线程上限。</p>
+<h4 id="获取DUMP日志"><a href="#获取DUMP日志" class="headerlink" title="获取DUMP日志"></a>获取DUMP日志</h4><p>因为生产环境没有装JDK，只有JRE环境，费了好一番功夫才发现有个神奇的命令.</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">kill -3 &lt;pid&gt;</div></pre></td></tr></table></figure>
+<p>这个命令并不会导致进程被杀，并且会将相应的线程堆栈信息和大致的内存占用情况输出到tomcat目录下的catalina.out文件中。<br>因为这个文件往往较大，所以DUMP前可以先清空这个日志文件。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">echo &quot;&quot;&gt;catalina.out -- 这个命令也可以用于运行时释放日志</div></pre></td></tr></table></figure>
+<p>拿到DUMP后，问题开始明朗起来：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">&quot;http-bio-443-exec-1151&quot; daemon prio=10 tid=0x00007fd1c96c9000 nid=0x26cb in Object.wait() [0x00007fd0f914e000]</div><div class="line">   java.lang.Thread.State: WAITING (on object monitor)</div><div class="line">    at java.lang.Object.wait(Native Method)</div><div class="line">        - waiting on &lt;0x00000007f5b040f8&gt; (a org.apache.commons.pool.impl.GenericObjectPool$Latch)</div><div class="line">            at java.lang.Object.wait(Object.java:503)</div><div class="line">                at org.apache.commons.pool.impl.GenericObjectPool.borrowObject(GenericObjectPool.java:1118)</div><div class="line">                    - locked &lt;0x00000007f5b040f8&gt; (a org.apache.commons.pool.impl.GenericObjectPool$Latch)</div><div class="line">                        at org.apache.commons.dbcp.PoolingDataSource.getConnection(PoolingDataSource.java:106)</div><div class="line">                            at org.apache.commons.dbcp.BasicDataSource.getConnection(BasicDataSource.java:1044)</div><div class="line">                                at org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource.getConnection(AbstractRoutingDataSource.java:164)</div><div class="line">                                    at org.springframework.jdbc.datasource.DataSourceTransactionManager.doBegin(DataSourceTransactionManager.java:205)</div><div class="line">                                        at org.springframework.transaction.support.AbstractPlatformTransactionManager.getTransaction(AbstractPlatformTransactionManager.java:373)</div><div class="line">                                            at org.springframework.transaction.interceptor.TransactionAspectSupport.createTransactionIfNecessary(TransactionAspectSupport.java:420)</div><div class="line">                                                at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:257)</div><div class="line">                                                    at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:95)</div><div class="line">                                                        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179)</div><div class="line">                                                            at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:646)</div></pre></td></tr></table></figure>
+<p>有近千个线程处于WAITING状态，都是卡在获取数据库连接这一步上。<br>反查数据库中的连接数:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">SELECT COUNT(1) FROM GV$SESSION WHERE machine = &apos;主机名&apos;</div></pre></td></tr></table></figure>
+<p>结果为100，并且这些连接全部处于INACTIVE状态，而数据库连接池配置的maxActive数就是100个。<br>说明数据库连接池泄露了。</p>
+<h4 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h4><p>应用框架采用的是spring+mybatis+dbcp1.4。<br>由于并不需要手动关闭数据库连接，所以业务代码导致这个问题的可能性不大。<br>google之后发现dbcp官方JIRA上也report了这个问题，据说是一个BUG，升级到1.5.3版本能解决这个问题。<br>但是奇怪的是，应用已经正常运行两年多了，为什么最近才出现这个问题呢？<br>难道是因为割接的地市越来越多，导致服务器压力增大，进而导致这个问题的发生？<br>如果是DBCP的BUG，那么升级版本或者替换为C3P0应该能够解决这个问题。<br>但我不确定是否真的是这个原因，或许业务代码在某种极为巧合的情形下的确会导致连接无法正常关闭；那么鲁莽的行为只会掩盖这个问题，并且在日后造成更大的麻烦。<br>所以最好的解决方式是找到连接泄漏的位置。<br>通过采用DBCP配置：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">maxWait=5000</div><div class="line">removeAbandoned=true</div><div class="line">removeAbandonedTimeout=60</div><div class="line">logAbandoned=true</div></pre></td></tr></table></figure>
+<p>来定位问题代码的位置。<br>设置的具体含义在官方文档上有，简言之，这样设置之后，在一定条件下，会触发DBCP的回收机制。当一个连接超过一定时间没有被使用，那么就视为abandoned连接，删除之，并记录下该连接的上下文和调用栈。</p>
+<h4 id="继续跟踪"><a href="#继续跟踪" class="headerlink" title="继续跟踪"></a>继续跟踪</h4><p>目前连接数还没有到达指标处，继续跟踪，希望明天就能解决这个问题。</p>
+<h4 id="终于找到问题了"><a href="#终于找到问题了" class="headerlink" title="终于找到问题了"></a>终于找到问题了</h4><p>很偶然的一次排查，我注意到了假死之后的tomcat的Thread Dump中，居然有一百多个线程还处于runable的状态！<br>而且这些线程全都是案件证据文件上传、下载的线程！这样一来就和FTP服务器有关了。</p>
+<p>这样整个问题出现的逻辑也就清楚了，步骤如下：</p>
+<ul>
+<li>上传文件的方法外面使用了Spring的@Transactional注解，这样就导致只有当事务提交之后，该数据库连接才能关闭</li>
+<li>FTP地址需要从数据库中获取，所以该方法会打开数据库连接；并且文件上传成功后需要在证据表中插入一条记录</li>
+<li>出于某种原因，上传文件的线程无法正常结束(不可能是文件过大的原因，因为客户端会判断当文件大于30M时，会访问专门的文件服务器进行分块上传)</li>
+<li>于是Spring无法关闭这个连接，这个连接一直无法被回收到连接池</li>
+<li>无法关闭的连接越来越多，到达设定的上限（100个，堆栈日志相符）；应用无法再获取任何数据库连接，导致相应操作全部挂起，线程处于WAITING状态</li>
+<li>等待状态的线程累计，到达tomcat分配上限，假死</li>
+<li>注意，443端口还是能正常访问静态资源，这是因为不同端口实际上用的线程池并不是同一个</li>
+</ul>
+<h4 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h4><ul>
+<li>Transactional的必要性值得怀疑</li>
+<li>本质问题是为什么FTP线程无法结束，需要分析是服务器原因，还是代码原因</li>
+<li>暴力解法：设定定时器，超时直接结束FTP线程</li>
+</ul>
+<h4 id="后续"><a href="#后续" class="headerlink" title="后续"></a>后续</h4><p>将FTP改为被动模式上传，问题解决。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 代码是瞎写的，意会即可</span></div><div class="line">FtpClient client = <span class="keyword">new</span> FtpClient();</div><div class="line">client.enterPasvmode();</div></pre></td></tr></table></figure>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2017/01/05/TOMCAT假死分析/" data-id="cj00vzn8f000a1mta46mpcb40" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/dbcp/">dbcp</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/tomcat/">tomcat</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2017/01/24/动态数据源路由容易掉进去的坑/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          动态数据源路由容易掉进去的坑
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2017/01/01/2017-01-01-日志/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">2017-01-01 日志</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/CODE/">CODE</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/C程序语言设计/">C程序语言设计</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/lucune/">lucune</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/zjipst/">zjipst</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/日志/">日志</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/读书笔记/">读书笔记</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/通用技术/">通用技术</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/BUG/">BUG</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/C/">C</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/DynamicDataSourceRouting/">DynamicDataSourceRouting</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring/">Spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/dbcp/">dbcp</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/hexo/">hexo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mac/">mac</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/shadowsocks/">shadowsocks</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/tomcat/">tomcat</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ubuntu/">ubuntu</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/全文检索/">全文检索</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志/">日志</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/阅读笔记/">阅读笔记</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/BUG/" style="font-size: 10px;">BUG</a> <a href="/tags/C/" style="font-size: 10px;">C</a> <a href="/tags/DynamicDataSourceRouting/" style="font-size: 10px;">DynamicDataSourceRouting</a> <a href="/tags/Spring/" style="font-size: 10px;">Spring</a> <a href="/tags/dbcp/" style="font-size: 10px;">dbcp</a> <a href="/tags/hexo/" style="font-size: 10px;">hexo</a> <a href="/tags/mac/" style="font-size: 10px;">mac</a> <a href="/tags/shadowsocks/" style="font-size: 10px;">shadowsocks</a> <a href="/tags/tomcat/" style="font-size: 10px;">tomcat</a> <a href="/tags/ubuntu/" style="font-size: 10px;">ubuntu</a> <a href="/tags/全文检索/" style="font-size: 10px;">全文检索</a> <a href="/tags/日志/" style="font-size: 20px;">日志</a> <a href="/tags/阅读笔记/" style="font-size: 10px;">阅读笔记</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">January 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">December 2016</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2017/03/06/hello-world/">Hello World</a>
+          </li>
+        
+          <li>
+            <a href="/2017/02/05/如何阅读一本书/">如何阅读一本书</a>
+          </li>
+        
+          <li>
+            <a href="/2017/02/05/C程序设计语言：第一章/">C程序设计语言：第一章</a>
+          </li>
+        
+          <li>
+            <a href="/2017/01/27/lucune初体验/">lucune初体验</a>
+          </li>
+        
+          <li>
+            <a href="/2017/01/27/mac开发环境搭建小记/">mac开发环境搭建小记</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2017 John Doe<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+  </div>
+</body>
+</html>
