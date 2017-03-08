@@ -3,17 +3,17 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: Hexo
-subtitle:
-description:
-author: John Doe
-language:
-timezone:
+title: 天问
+subtitle: 上下未形，何由考之？
+description: wir mussen wissen. wir werden wissen
+author: LiangKim
+language: zh-CN
+timezone: Asia/Shanghai
 
 # URL
 ## If your site is put in a subdirectory, set url as 'http://yoursite.com/child' and root as '/child/'
-url: http://yoursite.com
-root: /
+url:  https://liangkim.github.io/
+root: /myblog
 permalink: :year/:month/:day/:title/
 permalink_defaults:
 
@@ -63,11 +63,12 @@ pagination_dir: page
 # Extensions
 ## Plugins: https://hexo.io/plugins/
 ## Themes: https://hexo.io/themes/
-theme: landscape
+## theme: maupassant
+theme: next
 
 # Deployment
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
   type: git
-  repository: https://github.com/LiangKim/myblog.git
-  branch: gh-pages
+  repo: https://github.com/LiangKim/myblog.git 
+  branch: gh-pages 
