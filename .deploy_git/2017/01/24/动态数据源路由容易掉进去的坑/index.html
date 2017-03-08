@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>动态数据源路由容易掉进去的坑 | 天问</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="场景由于业务要求需要在不同的生产库、查询库（查询库中又包含多个子查询库）之间动态切换，所以使用了Spring提供的动态数据源路由功能。这个功能的基本原理，是将具体的数据库和一个枚举类作为键值对，由Spring提供的DynamicDataSourceRouting进行管理，然后将作为key的枚举类保存在ThreadLocal中以保证线程独立。这样在业务需要时，可以动态的根据一些条件，比如用户所处的行">
+<meta property="og:type" content="article">
+<meta property="og:title" content="动态数据源路由容易掉进去的坑">
+<meta property="og:url" content="https://liangkim.github.io/2017/01/24/动态数据源路由容易掉进去的坑/index.html">
+<meta property="og:site_name" content="天问">
+<meta property="og:description" content="场景由于业务要求需要在不同的生产库、查询库（查询库中又包含多个子查询库）之间动态切换，所以使用了Spring提供的动态数据源路由功能。这个功能的基本原理，是将具体的数据库和一个枚举类作为键值对，由Spring提供的DynamicDataSourceRouting进行管理，然后将作为key的枚举类保存在ThreadLocal中以保证线程独立。这样在业务需要时，可以动态的根据一些条件，比如用户所处的行">
+<meta property="og:updated_time" content="2017-02-09T12:29:11.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="动态数据源路由容易掉进去的坑">
+<meta name="twitter:description" content="场景由于业务要求需要在不同的生产库、查询库（查询库中又包含多个子查询库）之间动态切换，所以使用了Spring提供的动态数据源路由功能。这个功能的基本原理，是将具体的数据库和一个枚举类作为键值对，由Spring提供的DynamicDataSourceRouting进行管理，然后将作为key的枚举类保存在ThreadLocal中以保证线程独立。这样在业务需要时，可以动态的根据一些条件，比如用户所处的行">
+  
+    <link rel="alternate" href="/atom.xml" title="天问" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/myblog/css/style.css">
+  
+
+</head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/myblog/" id="logo">天问</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/myblog/" id="subtitle">上下未形，何由考之？</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/myblog/">Home</a>
+        
+          <a class="main-nav-link" href="/myblog/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://liangkim.github.io"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-动态数据源路由容易掉进去的坑" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/myblog/2017/01/24/动态数据源路由容易掉进去的坑/" class="article-date">
+  <time datetime="2017-01-23T22:19:27.000Z" itemprop="datePublished">2017-01-24</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/myblog/categories/zjipst/">zjipst</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      动态数据源路由容易掉进去的坑
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h4 id="场景"><a href="#场景" class="headerlink" title="场景"></a>场景</h4><p>由于业务要求需要在不同的生产库、查询库（查询库中又包含多个子查询库）之间动态切换，所以使用了Spring提供的动态数据源路由功能。<br>这个功能的基本原理，是将具体的数据库和一个枚举类作为键值对，由Spring提供的DynamicDataSourceRouting进行管理，然后将作为key的枚举类保存在ThreadLocal中以保证线程独立。这样在业务需要时，可以动态的根据一些条件，比如用户所处的行政区划之类的变量，动态的改变当前数据源。</p>
+<p>一开始，只有生产库和查询库两个数据源之间进行切换，后来根据业务需求，需要分摊统计查询的压力，将查询库切分为11个地市的子查询库。<br>看起来，没有任何问题，只是在切换数据源时，多了一层切换操作，然后奇怪的问题发生了：本来应该插入到生产库的数据，被随机地插入到了不同的子查询库中。</p>
+<h4 id="代码还原"><a href="#代码还原" class="headerlink" title="代码还原"></a>代码还原</h4><p>以下是精简之后的代码:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">//生产库、查询库所对应的key</div><div class="line">public enum DataSourceKind&#123;</div><div class="line">    READ, WRITE</div><div class="line">&#125;</div><div class="line"></div><div class="line">//各个查询库所对应的key</div><div class="line">public enum ReadDataSourceKind&#123;</div><div class="line">    NingBo, WenZhou, JiaXing, ShaoXing...//略</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">//持有ThreadLocal的类，提供对于线程独立变量的访问</div><div class="line">public class DataSourceHolder&#123;</div><div class="line">    private static final ThreadLocal&lt;DataSourceKind&gt; dataSource = new ThreadLocal&lt;DataSourceKind&gt;();</div><div class="line"></div><div class="line">    //获取当前数据源</div><div class="line">    public static DataSourceKind getDataSource()&#123; return dataSource.get();&#125;</div><div class="line">    //设置当前数据源</div><div class="line">    public static void setDataSource(DataSourceKind kind)&#123; dataSource.set(kind);&#125;</div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line">//略过各个查询库的holder</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">//继承Spring的动态数据源路由，复写获取数据源key方法</div><div class="line">public class MyDynamicDataSourceRouting extends DynamicDataSourceRouting&#123;</div><div class="line"></div><div class="line">    @Override</div><div class="line">    protected Object determineCurrentLookupKey() &#123;</div><div class="line">        return DataSourceHolder.getDataSource();</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line">//略过查询库的routing</div></pre></td></tr></table></figure>
+<p>具体的切换用到了SpringAOP，大致就是定义一个@DbReadOnly注解，然后当检测到有方法使用了该注解，就进行数据源的切换。<br>具体的业务场景中，只有很少一部分统计分析的请求会使用查询库，并且所有的@DbReadOnly注解基本上都是在Controller层。<br>第一步先切换到READ， 然后根据当前登录用户所处行政区划来进行查询库的切换，等到这个请求完成之后，再在finally中切换回默认的生产库来。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">public Object proceed(Proceed obj)&#123;</div><div class="line">    DataSourceHolder.setDataSource(DataSourceKind.READ);</div><div class="line">    User user = SessionUtils.getCurrentUser();    //获取当前登录的用户</div><div class="line">    String xzqh = user.getXzqh();</div><div class="line">    if(xzqh.equals(XzqhConsts.JinHua))&#123; ReadDataSourceHolder.setDataSource(ReadDataSourceKind.JinHua);&#125;</div><div class="line">    else if(xzqh.equals(XzqhConsts.WenZhou)&#123; ReadDataSourceHolder.setDataSource(ReadDataSourceKind.WenZhou);&#125;)</div><div class="line">    ....//略</div><div class="line">    </div><div class="line">    try&#123;</div><div class="line">        return obj.proceed();</div><div class="line">    &#125;catch(Exception e)&#123;</div><div class="line">        e.printStackTrace();</div><div class="line">    &#125;finally&#123;</div><div class="line">        DataSourceHolder.setDataSource(DataSourceKind.WRITE);    //重置为生产库</div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h4 id="分析与提示"><a href="#分析与提示" class="headerlink" title="分析与提示"></a>分析与提示</h4><p>有经验的老司机大概已经看出了问题所在， 数据之所以会写入到查询库的原因实在是很可笑。<br>还没明白过来的兄弟可以先看看接下来的提示。</p>
+<p>对于这个问题，我一开始根本摸不着头脑，因为在我的理解中，就算有线程没有切换回生产库，这个线程也会因为请求结束而被结束。<br>更何况涉及到查询库的那些请求根本不涉及INSERT操作。</p>
+<p>更何况怎么可能不切换回生产库呢？finally中的代码无论如何，就算抛运行时异常，也应该是会执行的啊？</p>
+<p>难道一个线程会被多个请求同时使用？或者ThreadLocal并不是真正的ThreadLocal?而是会在线程之间互相影响？</p>
+<p>最后绝望的我甚至还开始怀疑起枚举类是否是线程安全的。</p>
+<p>我也是被问题迷糊了头脑，实际上这个问题非常简单，我不过是在一堆错误的前提下做着无望的挣扎，而没有去怀疑自己所坚信的这些前提是否是成立的。</p>
+<p>我觉得当遇到一个看似匪夷所思，甚至毫无可能发生的异常时，需要有清醒的头脑，来反过来质疑看似坚固的前提。</p>
+<p>下面是两个小小的提示：</p>
+<ul>
+<li>线程真的会因为请求结束而结束吗？</li>
+<li>上面finally的代码真的必然后执行吗？</li>
+</ul>
+<h4 id="柳暗花明"><a href="#柳暗花明" class="headerlink" title="柳暗花明"></a>柳暗花明</h4><p>很遗憾，对于上面两个问题的答案，其实都是否定的。</p>
+<p>事实上，Tomcat存在一个线程池机制，对于完成了请求的线程，并不会立即释放，而是回收到线程池中；并且，很关键的一点是，tomcat并不会清空ThreadLocal变量。</p>
+<p>第二个问题，非常可笑的，虽然finally的确必然会执行，然而这是有条件的：如果程序在try代码块之外抛了异常，那么finally将不会被执行。</p>
+<p>至此，一切谜题的答案已经展现在眼前。</p>
+<p>用户的session丢失，会导致获取xzqh那一行代码抛空指针异常，然而之前已经切换为READ库，所以当前线程已经指向了查询库，又因为抛运行时异常，所以请求结束；<br>接着，线程被回收，进入线程池；过了不知道多久，有一个倒霉的请求被分配到了这个线程上执行，然后因为数据源并不会切换到WRITE中，所以INSERT操作会进入到查询库。</p>
+<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>看似不可思议的问题， 既然真真切切的发生了，那么必然又一个合乎逻辑的解释；看似不可思议，不过是因为你误解了某些前提。<br>另外我这么久也没看出问题所在，仅仅是以为我基础不够，否则如果我早知道tomcat有这么玄妙的线程池机制，那么我应该很快就能想到问题的关键点所在。</p>
+<p>不过，总的来说，这是一场很有趣的解谜体验。：）</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://liangkim.github.io/myblog/2017/01/24/动态数据源路由容易掉进去的坑/" data-id="cj00xk6h5000n93tabfxyygzy" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/myblog/tags/BUG/">BUG</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/myblog/tags/DynamicDataSourceRouting/">DynamicDataSourceRouting</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/myblog/tags/Spring/">Spring</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/myblog/2017/01/27/mac开发环境搭建小记/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          mac开发环境搭建小记
+        
+      </div>
+    </a>
+  
+  
+    <a href="/myblog/2017/01/05/TOMCAT假死分析/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">TOMCAT假死分析</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/myblog/categories/CODE/">CODE</a></li><li class="category-list-item"><a class="category-list-link" href="/myblog/categories/C程序语言设计/">C程序语言设计</a></li><li class="category-list-item"><a class="category-list-link" href="/myblog/categories/lucune/">lucune</a></li><li class="category-list-item"><a class="category-list-link" href="/myblog/categories/zjipst/">zjipst</a></li><li class="category-list-item"><a class="category-list-link" href="/myblog/categories/日志/">日志</a></li><li class="category-list-item"><a class="category-list-link" href="/myblog/categories/读书笔记/">读书笔记</a></li><li class="category-list-item"><a class="category-list-link" href="/myblog/categories/通用技术/">通用技术</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/myblog/tags/BUG/">BUG</a></li><li class="tag-list-item"><a class="tag-list-link" href="/myblog/tags/C/">C</a></li><li class="tag-list-item"><a class="tag-list-link" href="/myblog/tags/DynamicDataSourceRouting/">DynamicDataSourceRouting</a></li><li class="tag-list-item"><a class="tag-list-link" href="/myblog/tags/Spring/">Spring</a></li><li class="tag-list-item"><a class="tag-list-link" href="/myblog/tags/dbcp/">dbcp</a></li><li class="tag-list-item"><a class="tag-list-link" href="/myblog/tags/hexo/">hexo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/myblog/tags/mac/">mac</a></li><li class="tag-list-item"><a class="tag-list-link" href="/myblog/tags/shadowsocks/">shadowsocks</a></li><li class="tag-list-item"><a class="tag-list-link" href="/myblog/tags/tomcat/">tomcat</a></li><li class="tag-list-item"><a class="tag-list-link" href="/myblog/tags/ubuntu/">ubuntu</a></li><li class="tag-list-item"><a class="tag-list-link" href="/myblog/tags/全文检索/">全文检索</a></li><li class="tag-list-item"><a class="tag-list-link" href="/myblog/tags/日志/">日志</a></li><li class="tag-list-item"><a class="tag-list-link" href="/myblog/tags/阅读笔记/">阅读笔记</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/myblog/tags/BUG/" style="font-size: 10px;">BUG</a> <a href="/myblog/tags/C/" style="font-size: 10px;">C</a> <a href="/myblog/tags/DynamicDataSourceRouting/" style="font-size: 10px;">DynamicDataSourceRouting</a> <a href="/myblog/tags/Spring/" style="font-size: 10px;">Spring</a> <a href="/myblog/tags/dbcp/" style="font-size: 10px;">dbcp</a> <a href="/myblog/tags/hexo/" style="font-size: 10px;">hexo</a> <a href="/myblog/tags/mac/" style="font-size: 10px;">mac</a> <a href="/myblog/tags/shadowsocks/" style="font-size: 10px;">shadowsocks</a> <a href="/myblog/tags/tomcat/" style="font-size: 10px;">tomcat</a> <a href="/myblog/tags/ubuntu/" style="font-size: 10px;">ubuntu</a> <a href="/myblog/tags/全文检索/" style="font-size: 10px;">全文检索</a> <a href="/myblog/tags/日志/" style="font-size: 20px;">日志</a> <a href="/myblog/tags/阅读笔记/" style="font-size: 10px;">阅读笔记</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/myblog/archives/2017/03/">三月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/myblog/archives/2017/02/">二月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/myblog/archives/2017/01/">一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/myblog/archives/2016/12/">十二月 2016</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/myblog/2017/03/06/hello-world/">Hello World</a>
+          </li>
+        
+          <li>
+            <a href="/myblog/2017/02/05/如何阅读一本书/">如何阅读一本书</a>
+          </li>
+        
+          <li>
+            <a href="/myblog/2017/02/05/C程序设计语言：第一章/">C程序设计语言：第一章</a>
+          </li>
+        
+          <li>
+            <a href="/myblog/2017/01/27/lucune初体验/">lucune初体验</a>
+          </li>
+        
+          <li>
+            <a href="/myblog/2017/01/27/mac开发环境搭建小记/">mac开发环境搭建小记</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2017 LiangKim<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/myblog/" class="mobile-nav-link">Home</a>
+  
+    <a href="/myblog/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/myblog/fancybox/jquery.fancybox.css">
+  <script src="/myblog/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/myblog/js/script.js"></script>
+
+  </div>
+</body>
+</html>
